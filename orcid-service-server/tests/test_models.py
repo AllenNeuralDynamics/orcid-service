@@ -1,31 +1,60 @@
-"""Tests methods in models module"""
+"""Tests models module"""
 
 import unittest
 
-from orcid_service_server.models import (
-    Content,
-    HealthCheck,
-)
+from orcid_service_server.models import ExpandedSearch, RecordSummary
 
 
-class TestHealthCheck(unittest.TestCase):
-    """Tests for HealthCheck class"""
+class TestExpandedSearch(unittest.TestCase):
+    """Tests the expanded-search response model"""
 
-    def test_constructor(self):
-        """Basic test for class constructor"""
+    def test_parses_results(self):
+        """Tests aliased fields are read from the ORCID payload"""
+        search = ExpandedSearch(
+            **{
+                "expanded-result": [
+                    {
+                        "orcid-id": "0000-0003-3748-6289",
+                        "given-names": "Daniel",
+                        "family-names": "Birman",
+                        "institution-name": ["Allen Institute"],
+                    }
+                ],
+                "num-found": 1,
+            }
+        )
+        self.assertEqual(1, search.num_found)
+        self.assertEqual(
+            "0000-0003-3748-6289", search.expanded_result[0].orcid_id
+        )
+        self.assertEqual(
+            ["Allen Institute"], search.expanded_result[0].institution_name
+        )
 
-        health_check = HealthCheck()
-        self.assertEqual("OK", health_check.status)
+    def test_handles_null_results(self):
+        """Tests ORCID sending null rather than an empty list"""
+        search = ExpandedSearch(**{"expanded-result": None, "num-found": 0})
+        self.assertIsNone(search.expanded_result)
 
 
-class TestContent(unittest.TestCase):
-    """Tests for HealthCheck class"""
+class TestRecordSummary(unittest.TestCase):
+    """Tests the record summary model"""
 
-    def test_constructor(self):
-        """Basic test for class constructor"""
+    def test_parses_email_domains(self):
+        """Tests verified email domains are read"""
+        summary = RecordSummary(
+            **{
+                "emailDomains": [
+                    {"value": "alleninstitute.org", "verificationDate": None}
+                ]
+            }
+        )
+        self.assertEqual("alleninstitute.org", summary.email_domains[0].value)
 
-        content = Content(info="Some Info", arg="An extra arg")
-        self.assertEqual("Some Info", content.info)
+    def test_handles_missing_email_domains(self):
+        """Tests a record with no verified domains"""
+        summary = RecordSummary(**{})
+        self.assertEqual([], summary.email_domains)
 
 
 if __name__ == "__main__":
