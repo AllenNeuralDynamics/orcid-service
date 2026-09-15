@@ -99,7 +99,9 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
             if name_matches(result, folded_name)
         ]
 
-        # Institutions and public emails are included in the search results.
+        # A name match alone would resolve an unregistered AIND person to
+        # a stranger who shares their name, so an Allen signal is required
+        # too. Institutions and public emails come back with the search.
         matches = [
             result.orcid_id for result in results if is_allen_record(result)
         ]
@@ -149,20 +151,22 @@ async def get_orcid(
 ):
     """
     ## ORCID
-    Return a researcher's ORCID iD, or 404 when the match is not
-    definitive. A name match on its own is not enough. We want to avoid
-    an AIND researcher who never registered with ORCID resolving to an
-    outside researcher who happens to share their name.
+    Return an Allen Institute researcher's ORCID iD, or 404 when the
+    match is not definitive.
 
-    The expanded-search endpoint returns the candidates matching a name
-    along with their institutions and any public email address, and an iD
-    is returned when exactly one candidate is tied to Allen by either. If
-    that is not definitive, because several candidates match or none names
-    an Allen institution, each candidate is looked up again on the record
-    summary endpoint, which carries the domain of a registered email even
-    when the address itself is private, and that domain is matched
-    instead. Those lookups require a request each, so they are capped at
-    MAX_DOMAIN_CHECKS.
+    We require the full name to match the name on the record, ignoring
+    case and accents, plus one of the following must be true:
+
+    - The record lists an Allen institution or a public Allen email
+      address, found in the expanded-search endpoint results, or
+    - The record summary lists a verified Allen email domain, found in a
+      follow-up request to the summary endpoint.
+
+    Calls to the summary endpoint require a request each, so they are
+    capped at MAX_DOMAIN_CHECKS, which defaults to 10. Users with common
+    names may exceed that limit. However, setting the affiliation to an
+    Allen institution or a public Allen email address will guarantee a
+    match without needing to check the summary endpoint.
     """
     # Quotes and backslashes would break the quoted Solr query.
     name_parts = name.replace('"', "").replace("\\", "").split()
