@@ -20,6 +20,11 @@ ALLEN_DOMAIN = "alleninstitute.org"
 # Verified email domains take one request per candidate, so they are only
 # worth spending on a short list of namesakes.
 MAX_DOMAIN_CHECKS = 10
+# Successful lookups are cached. A 404 raises, so misses are never cached
+# and are re-checked on the next request, which is what lets someone who
+# has just added an affiliation to their ORCID record verify it at once.
+# Send "Cache-Control: no-cache" to force a refresh of a cached hit.
+CACHE_SECONDS = 86400
 
 
 def fold_name(name: str) -> str:
@@ -80,11 +85,10 @@ async def match_by_email_domain(
     return matches
 
 
-@cache(expire=86400)
 async def resolve_orcid_id(name: str) -> Optional[str]:
     """
     Resolve a name to an ORCID iD, or None when the match is not
-    definitive. Cached because ORCID iDs are permanent.
+    definitive.
     """
     folded_name = fold_name(name)
     async with get_session() as session:
@@ -135,6 +139,7 @@ async def get_health() -> HealthCheck:
 
 
 @router.get("/orcid/{name}", response_model=OrcidId)
+@cache(expire=CACHE_SECONDS)
 async def get_orcid(
     name: str = Path(
         ...,

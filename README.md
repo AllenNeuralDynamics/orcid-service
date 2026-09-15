@@ -30,6 +30,8 @@ uv run uvicorn orcid_service_server.main:app --port 8000
 
 Then open http://localhost:8000/docs for the interactive API docs, or http://localhost:8000/healthcheck.
 
+Successful lookups are cached for 24 hours; lookups that return 404 are not cached, so a name that does not resolve is re-checked every time. Bulk callers should resolve each distinct name once rather than once per data asset. See the [server README](orcid-service-server/README.md) for details.
+
 Every setting has a default pointing at the public ORCID hosts, so no configuration is needed to run or test.
 
 ## Tests
