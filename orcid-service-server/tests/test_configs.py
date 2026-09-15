@@ -33,7 +33,6 @@ class TestSettings(unittest.TestCase):
         settings = Settings()
         self.assertEqual("https://pub.orcid.org/", str(settings.api_host))
         self.assertEqual("https://orcid.org/", str(settings.summary_host))
-        self.assertIsNone(settings.access_token)
 
 
 if __name__ == "__main__":

@@ -11,12 +11,8 @@ def get_session() -> AsyncClient:
     closing it, which is why this is not a FastAPI dependency: the routes
     wrap their lookups in a cache decorator that dependencies cannot reach.
     """
-    headers = {"Accept": "application/json"}
-    if settings.access_token is not None:
-        token = settings.access_token.get_secret_value()
-        headers["Authorization"] = f"Bearer {token}"
     return AsyncClient(
         base_url=settings.api_host.unicode_string(),
-        headers=headers,
+        headers={"Accept": "application/json"},
         timeout=30.0,
     )

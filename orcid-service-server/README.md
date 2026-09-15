@@ -18,10 +18,9 @@ All settings are read from the environment with an `ORCID_` prefix, and all of t
 | --- | --- | --- |
 | `ORCID_API_HOST` | `https://pub.orcid.org` | The ORCID public API |
 | `ORCID_SUMMARY_HOST` | `https://orcid.org` | Record summaries, which carry verified email domains |
-| `ORCID_ACCESS_TOKEN` | unset | Optional `/read-public` token. Raises the rate limit; anonymous access works without it |
 | `ORCID_REDIS_URL` | unset | Cache backend. Falls back to an in-process cache when unset |
 
-Lookups are cached for 24 hours, since ORCID iDs are permanent.
+Lookups are cached for 24 hours, keyed on the name. Both hits and misses are cached, so a name that does not resolve today is retried tomorrow, which is how someone who adds an affiliation to their ORCID record gets picked up. Caching decouples request volume from upload volume: any number of data assets naming the same person costs at most one ORCID search per day.
 
 ## Development
 
@@ -40,7 +39,7 @@ The interactive docs at `/docs` are the quickest way to try a name by hand.
 | --- | --- |
 | `configs.py` | Settings |
 | `models.py` | Pydantic models for ORCID payloads and this service's responses |
-| `session.py` | Builds the HTTP client, attaching the bearer token when one is configured |
+| `session.py` | Builds the HTTP client |
 | `handler.py` | One method per outbound ORCID request |
 | `route.py` | Endpoints and the matching rule |
 | `main.py` | App, cache lifespan, CORS |
