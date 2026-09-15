@@ -8,4 +8,4 @@ ADD setup.py .
 
 RUN pip install . --no-cache-dir
 
-CMD ["fastapi", "run", "src/aind_service_template_server/main.py", "--port", "80"]
+CMD ["fastapi", "run", "src/orcid_service_server/main.py", "--port", "80"]

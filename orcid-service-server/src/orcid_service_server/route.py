@@ -3,9 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from requests_toolbelt.sessions import BaseUrlSession
 
-from aind_service_template_server.handler import SessionHandler
-from aind_service_template_server.models import Content, HealthCheck
-from aind_service_template_server.session import get_session
+from orcid_service_server.handler import SessionHandler
+from orcid_service_server.models import Content, HealthCheck
+from orcid_service_server.session import get_session
 
 router = APIRouter()
 

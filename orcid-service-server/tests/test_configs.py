@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from aind_service_template_server.configs import Settings
+from orcid_service_server.configs import Settings
 
 
 class TestSettings(unittest.TestCase):

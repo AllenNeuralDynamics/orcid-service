@@ -27,10 +27,10 @@ def load_env_from_toml(toml_path):
 if __name__ == "__main__":
     env_toml_path = os.getenv(
         "TOML_PATH",
-        Path("aind-service-template-server") / "pyproject.toml",
+        Path("orcid-service-server") / "pyproject.toml",
     )
     load_env_from_toml(env_toml_path)
-    from aind_service_template_server.main import app
+    from orcid_service_server.main import app
 
     specs = get_openapi(
         title=app.title if app.title else None,

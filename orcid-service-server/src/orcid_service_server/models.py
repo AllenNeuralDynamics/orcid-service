@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from aind_service_template_server import __version__
+from orcid_service_server import __version__
 
 
 class HealthCheck(BaseModel):

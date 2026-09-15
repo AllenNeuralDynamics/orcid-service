@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - aind-service-template-server/**
+      - orcid-service-server/**
 
 jobs:
   tests:
@@ -15,7 +15,7 @@ jobs:
         python-version: [ '3.10', '3.11', '3.12' ]
     defaults:
       run:
-        working-directory: ./aind-service-template-server
+        working-directory: ./orcid-service-server
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}

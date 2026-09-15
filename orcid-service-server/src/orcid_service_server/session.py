@@ -2,7 +2,7 @@
 
 from requests_toolbelt.sessions import BaseUrlSession
 
-from aind_service_template_server.configs import Settings
+from orcid_service_server.configs import Settings
 
 settings = Settings()
 

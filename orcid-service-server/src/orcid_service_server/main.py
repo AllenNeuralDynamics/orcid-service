@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
-from aind_service_template_server import __version__ as service_version
-from aind_service_template_server.route import router
+from orcid_service_server import __version__ as service_version
+from orcid_service_server.route import router
 
 # The log level can be set by adding an environment variable before launch.
 log_level = os.getenv("LOG_LEVEL", "INFO")

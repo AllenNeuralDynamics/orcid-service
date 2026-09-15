@@ -2,7 +2,7 @@
 
 import pytest
 
-from aind_service_template_server.session import get_session
+from orcid_service_server.session import get_session
 
 
 class TestSession:

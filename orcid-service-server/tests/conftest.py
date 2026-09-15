@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from requests import Response
 from requests_toolbelt.sessions import BaseUrlSession
 
-from aind_service_template_server.main import app
+from orcid_service_server.main import app
 
 RESOURCES_DIR = Path(os.path.dirname(os.path.realpath(__file__))) / "resources"
 
