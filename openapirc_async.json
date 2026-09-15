@@ -1,0 +1,6 @@
+{
+   "packageName": "aind_service_template_async_client",
+   "projectName": "aind-service-template-async-client",
+   "library": "asyncio",
+   "packageVersion": "0.0.0"
+}

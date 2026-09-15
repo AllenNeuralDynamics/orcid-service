@@ -1,0 +1,72 @@
+# Workflow runs only once when the template is first used.
+# File can be safely deleted after repo is initialized.
+name: Initialize repository
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  initialize-package:
+    name: Initialize the package
+    if: ${{github.event.repository.name != 'aind-service-template'}}
+    runs-on: ubuntu-latest
+    env:
+      REPO_NAME: ${{ github.event.repository.name }}
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Rename package
+      run: |
+        pkg_name=$(echo "${REPO_NAME}" | tr - _)
+        echo "Package Name ${pkg_name}"
+        server_repo_name="${REPO_NAME}-server"
+        server_pkg_name=$(echo "${server_repo_name}" | tr - _)
+        mv aind-service-template-server/src/aind_service_template_server aind-service-template-server/src/${server_pkg_name}
+        mv aind-service-template-server ${server_repo_name}
+        echo "Server repo ${server_repo_name} directory"
+        ls ${server_repo_name}
+        echo "Server repo src directory"
+        ls ${server_repo_name}/src
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/pyproject.toml
+        sed -i "s/aind-service-template-server/${server_repo_name}/" ${server_repo_name}/pyproject.toml
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/Dockerfile
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" scripts/generate_openapi.py
+        sed -i "s/aind-service-template-server/${server_repo_name}/" scripts/generate_openapi.py
+        sed -i "s/aind-service-template-server/${server_repo_name}/" workflow_templates/test_server.yml
+        sed -i "s/aind-service-template/${REPO_NAME}/" workflow_templates/tag_and_publish.yml
+        sed -i "s/aind-service-template/${REPO_NAME}/" openapirc.json
+        sed -i "s/aind_service_template/${pkg_name}/" openapirc.json
+        sed -i "s/aind-service-template/${REPO_NAME}/" openapirc_async.json
+        sed -i "s/aind_service_template/${pkg_name}/" openapirc_async.json
+        sed -i "s/aind-service-template-server/${server_repo_name}/" ${server_repo_name}/src/${server_pkg_name}/main.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/src/${server_pkg_name}/main.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/src/${server_pkg_name}/handler.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/src/${server_pkg_name}/models.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/src/${server_pkg_name}/route.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/src/${server_pkg_name}/session.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/tests/conftest.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/tests/test_configs.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/tests/test_handler.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/tests/test_models.py
+        sed -i "s/aind_service_template_server/${server_pkg_name}/" ${server_repo_name}/tests/test_session.py
+    - name: Commit changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        default_author: github_actions
+        message: "ci: initialize files [skip actions]"
+        add: '["."]'
+    - name: Add first tag
+      run: |
+        git tag v0.0.0
+        git push origin v0.0.0
+    - name: Disable workflow
+      run: |
+        gh workflow disable -R $GITHUB_REPOSITORY "${{ github.workflow }}"
+    - name: Remove init file
+      uses: EndBug/add-and-commit@v9
+      with:
+        default_author: github_actions
+        message: "ci: remove init workflow [skip actions]"
+        remove: '["-r .github/workflows/init.yml"]'
