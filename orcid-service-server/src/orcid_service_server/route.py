@@ -166,7 +166,7 @@ async def get_orcid(
     capped at MAX_DOMAIN_CHECKS, which defaults to 10. Users with common
     names may exceed that limit. However, setting the affiliation to an
     Allen institution or a public Allen email address will guarantee a
-    match without needing to check the summary endpoint.
+    match without needing to check the summary endpoint, which is preferred.
     """
     # Quotes and backslashes would break the quoted Solr query.
     name_parts = name.replace('"', "").replace("\\", "").split()

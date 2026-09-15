@@ -43,124 +43,137 @@ class TestOrcidRoute:
 
     def test_get_orcid(self, client: TestClient, httpx_mock: HTTPXMock):
         """Tests one Allen record among the name matches is returned"""
+        # Names and iDs throughout these tests are placeholders; the
+        # 0000-0000-* iD range is unassigned by ORCID. The second result
+        # models a record matched on a work title rather than on its
+        # owner's name, which is what the name check filters out.
         add_search(
             httpx_mock,
-            "Daniel Birman",
+            "Researcher One",
             {
-                "orcid-id": "0000-0003-3748-6289",
-                "given-names": "Daniel",
-                "family-names": "Birman",
+                "orcid-id": "0000-0000-0000-0011",
+                "given-names": "Researcher",
+                "family-names": "One",
                 "institution-name": ["Allen Institute for Neural Dynamics"],
             },
             # Matched on a work title, not on the record owner's name.
             {
                 "orcid-id": "0000-0000-0000-9999",
-                "given-names": "Someone",
-                "family-names": "Else",
+                "given-names": "Other",
+                "family-names": "Person",
             },
         )
 
-        response = client.get("/orcid/Daniel Birman")
+        response = client.get("/orcid/Researcher One")
 
         assert 200 == response.status_code
-        assert {"orcid": "0000-0003-3748-6289"} == response.json()
+        assert {"orcid": "0000-0000-0000-0011"} == response.json()
 
     def test_get_orcid_accented_record(
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests an unaccented name matches an accented record"""
+        # Models the real Jerome/Jérôme Lecoq case: fielded ORCID search
+        # does not fold accents, so an ASCII query would otherwise miss.
         add_search(
             httpx_mock,
-            "Jerome Lecoq",
+            "Accented Researcher",
             {
-                "orcid-id": "0000-0002-0131-0938",
-                "given-names": "Jérôme",
-                "family-names": "Lecoq",
+                "orcid-id": "0000-0000-0000-0012",
+                "given-names": "Áccented",
+                "family-names": "Researcher",
                 "institution-name": ["Allen Institute"],
             },
         )
 
-        response = client.get("/orcid/Jerome Lecoq")
+        response = client.get("/orcid/Accented Researcher")
 
         assert 200 == response.status_code
-        assert {"orcid": "0000-0002-0131-0938"} == response.json()
+        assert {"orcid": "0000-0000-0000-0012"} == response.json()
 
     def test_get_orcid_ignores_unrelated_allen(
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests the law firm Allen and Overy is not an Allen institution"""
+        # Allen and Overy is a real firm with ORCID-registered staff,
+        # which is why the institution check is not just "allen".
         add_search(
             httpx_mock,
-            "David Feng",
+            "Researcher Two",
             {
                 "orcid-id": "0000-0000-0000-0001",
-                "given-names": "David",
-                "family-names": "Feng",
+                "given-names": "Researcher",
+                "family-names": "Two",
                 "institution-name": ["Allen and Overy"],
             },
             {
-                "orcid-id": "0000-0002-4920-8123",
-                "given-names": "David",
-                "family-names": "Feng",
+                "orcid-id": "0000-0000-0000-0016",
+                "given-names": "Researcher",
+                "family-names": "Two",
                 "institution-name": ["Allen Institute for Brain Science"],
             },
         )
 
-        response = client.get("/orcid/David Feng")
+        response = client.get("/orcid/Researcher Two")
 
         assert 200 == response.status_code
-        assert {"orcid": "0000-0002-4920-8123"} == response.json()
+        assert {"orcid": "0000-0000-0000-0016"} == response.json()
 
     def test_get_orcid_allen_email(
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a public Allen email address resolves a tie"""
+        # Only a handful of records expose a public Allen address, so
+        # this signal is high precision and low recall.
         add_search(
             httpx_mock,
-            "Galen Lynch",
+            "Researcher Three",
             {
                 "orcid-id": "0000-0000-0000-0001",
-                "given-names": "Galen",
-                "family-names": "Lynch",
+                "given-names": "Researcher",
+                "family-names": "Three",
                 "email": ["someone@example.edu"],
             },
             {
-                "orcid-id": "0000-0003-4307-0247",
-                "credit-name": "Galen Lynch",
-                "email": ["Galen.Lynch@AllenInstitute.org"],
+                "orcid-id": "0000-0000-0000-0017",
+                "credit-name": "Researcher Three",
+                "email": ["researcher.three@AllenInstitute.org"],
             },
         )
 
-        response = client.get("/orcid/Galen Lynch")
+        response = client.get("/orcid/Researcher Three")
 
         assert 200 == response.status_code
-        assert {"orcid": "0000-0003-4307-0247"} == response.json()
+        assert {"orcid": "0000-0000-0000-0017"} == response.json()
 
     def test_get_orcid_verified_email_domain(
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a record with no affiliation resolved by email domain"""
+        # Models the real Saskia de Vries case: a multi-token surname,
+        # no affiliation on the record, and two same-named stub records.
+        # Only the verified email domain separates them.
         namesakes = [
             {
                 "orcid-id": orcid_id,
-                "given-names": "Saskia",
-                "family-names": "de Vries",
+                "given-names": "Multi",
+                "family-names": "Token Surname",
             }
             for orcid_id in [
-                "0009-0001-8211-0777",
-                "0009-0009-1997-9515",
-                "0000-0002-3704-3499",
+                "0000-0000-0000-0014",
+                "0000-0000-0000-0015",
+                "0000-0000-0000-0013",
             ]
         ]
-        add_search(httpx_mock, "Saskia de Vries", *namesakes)
-        add_summary(httpx_mock, "0009-0001-8211-0777")
-        add_summary(httpx_mock, "0009-0009-1997-9515")
-        add_summary(httpx_mock, "0000-0002-3704-3499", "alleninstitute.org")
+        add_search(httpx_mock, "Multi Token Surname", *namesakes)
+        add_summary(httpx_mock, "0000-0000-0000-0014")
+        add_summary(httpx_mock, "0000-0000-0000-0015")
+        add_summary(httpx_mock, "0000-0000-0000-0013", "alleninstitute.org")
 
-        response = client.get("/orcid/Saskia de Vries")
+        response = client.get("/orcid/Multi Token Surname")
 
         assert 200 == response.status_code
-        assert {"orcid": "0000-0002-3704-3499"} == response.json()
+        assert {"orcid": "0000-0000-0000-0013"} == response.json()
 
     def test_get_orcid_summary_lookup_failure(
         self, client: TestClient, httpx_mock: HTTPXMock
@@ -168,16 +181,16 @@ class TestOrcidRoute:
         """Tests a failed summary lookup counts as no signal"""
         add_search(
             httpx_mock,
-            "Saskia de Vries",
+            "Multi Token Surname",
             {
                 "orcid-id": "0000-0000-0000-0001",
-                "given-names": "Saskia",
-                "family-names": "de Vries",
+                "given-names": "Multi",
+                "family-names": "Token Surname",
             },
             {
                 "orcid-id": "0000-0000-0000-0002",
-                "given-names": "Saskia",
-                "family-names": "de Vries",
+                "given-names": "Multi",
+                "family-names": "Token Surname",
             },
         )
         httpx_mock.add_response(
@@ -189,7 +202,7 @@ class TestOrcidRoute:
             status_code=500,
         )
 
-        response = client.get("/orcid/Saskia de Vries")
+        response = client.get("/orcid/Multi Token Surname")
 
         assert 404 == response.status_code
         assert {"detail": "Not found"} == response.json()
@@ -198,18 +211,20 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a lone name match with nothing tying it to Allen"""
+        # An entirely empty ORCID record. Unique on name, but nothing
+        # says it belongs to the AIND person being looked up.
         add_search(
             httpx_mock,
-            "Peter Groblewski",
+            "Researcher Five",
             {
-                "orcid-id": "0000-0002-8415-1118",
-                "given-names": "Peter",
-                "family-names": "Groblewski",
+                "orcid-id": "0000-0000-0000-0018",
+                "given-names": "Researcher",
+                "family-names": "Five",
             },
         )
-        add_summary(httpx_mock, "0000-0002-8415-1118")
+        add_summary(httpx_mock, "0000-0000-0000-0018")
 
-        response = client.get("/orcid/Peter Groblewski")
+        response = client.get("/orcid/Researcher Five")
 
         assert 404 == response.status_code
         assert {"detail": "Not found"} == response.json()
@@ -222,18 +237,18 @@ class TestOrcidRoute:
 
         add_search(
             httpx_mock,
-            "John Smith",
+            "Common Name",
             *[
                 {
                     "orcid-id": f"0000-0000-0000-{index:04d}",
-                    "given-names": "John",
-                    "family-names": "Smith",
+                    "given-names": "Common",
+                    "family-names": "Name",
                 }
                 for index in range(MAX_DOMAIN_CHECKS + 1)
             ],
         )
 
-        response = client.get("/orcid/John Smith")
+        response = client.get("/orcid/Common Name")
 
         assert 404 == response.status_code
         # Only the search was called, no summary lookups.
@@ -243,16 +258,16 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a search with no results"""
-        add_search(httpx_mock, "Nobody Here")
+        add_search(httpx_mock, "Unknown Researcher")
 
-        response = client.get("/orcid/Nobody Here")
+        response = client.get("/orcid/Unknown Researcher")
 
         assert 404 == response.status_code
         assert {"detail": "Not found"} == response.json()
 
     def test_get_orcid_invalid_name(self, client: TestClient):
         """Tests a name without a family name is rejected"""
-        response = client.get("/orcid/Birman")
+        response = client.get("/orcid/OneToken")
 
         assert 400 == response.status_code
 

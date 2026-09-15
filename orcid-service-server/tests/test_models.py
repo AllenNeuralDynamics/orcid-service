@@ -14,9 +14,9 @@ class TestExpandedSearch(unittest.TestCase):
             **{
                 "expanded-result": [
                     {
-                        "orcid-id": "0000-0003-3748-6289",
-                        "given-names": "Daniel",
-                        "family-names": "Birman",
+                        "orcid-id": "0000-0000-0000-0011",
+                        "given-names": "Researcher",
+                        "family-names": "One",
                         "institution-name": ["Allen Institute"],
                     }
                 ],
@@ -25,7 +25,7 @@ class TestExpandedSearch(unittest.TestCase):
         )
         self.assertEqual(1, search.num_found)
         self.assertEqual(
-            "0000-0003-3748-6289", search.expanded_result[0].orcid_id
+            "0000-0000-0000-0011", search.expanded_result[0].orcid_id
         )
         self.assertEqual(
             ["Allen Institute"], search.expanded_result[0].institution_name
