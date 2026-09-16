@@ -9,10 +9,15 @@ SEARCH_URL = "http://example.com/pub/v3.0/expanded-search/"
 SUMMARY_URL = "http://example.com/{orcid_id}/summary.json"
 
 
+def solr_query(name: str) -> str:
+    """Build the query the service sends: every token, quoted, ANDed."""
+    return " AND ".join(f'"{token}"' for token in name.split())
+
+
 def add_search(httpx_mock: HTTPXMock, name: str, *results: dict) -> None:
     """Queue an expanded-search response for a name."""
     httpx_mock.add_response(
-        url=URL(SEARCH_URL, params={"q": f'"{name}"', "rows": 50}),
+        url=URL(SEARCH_URL, params={"q": solr_query(name), "rows": 50}),
         json={
             "expanded-result": list(results) or None,
             "num-found": len(results),
@@ -90,6 +95,29 @@ class TestOrcidRoute:
 
         assert 200 == response.status_code
         assert {"orcid": "0000-0000-0000-0012"} == response.json()
+
+    def test_get_orcid_reversed_name_fields(
+        self, client: TestClient, httpx_mock: HTTPXMock
+    ):
+        """Tests a record whose given and family names are swapped"""
+        # Models the real Karel Svoboda record, which is filed as
+        # given-names="svoboda", family-names="karel". Comparing tokens
+        # rather than the joined string is what catches it.
+        add_search(
+            httpx_mock,
+            "Researcher Four",
+            {
+                "orcid-id": "0000-0000-0000-0019",
+                "given-names": "Four",
+                "family-names": "Researcher",
+                "institution-name": ["Allen Institute"],
+            },
+        )
+
+        response = client.get("/orcid/Researcher Four")
+
+        assert 200 == response.status_code
+        assert {"orcid": "0000-0000-0000-0019"} == response.json()
 
     def test_get_orcid_ignores_unrelated_allen(
         self, client: TestClient, httpx_mock: HTTPXMock

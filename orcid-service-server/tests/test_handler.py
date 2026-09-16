@@ -16,7 +16,10 @@ class TestSessionHandler:
     async def test_search_by_name(self, httpx_mock: HTTPXMock):
         """Tests a search returns parsed results"""
         httpx_mock.add_response(
-            url=URL(SEARCH_URL, params={"q": '"Researcher One"', "rows": 50}),
+            url=URL(
+                SEARCH_URL,
+                params={"q": '"Researcher" AND "One"', "rows": 50},
+            ),
             json={
                 "expanded-result": [
                     {
@@ -39,7 +42,8 @@ class TestSessionHandler:
         """Tests ORCID sending null rather than an empty list"""
         httpx_mock.add_response(
             url=URL(
-                SEARCH_URL, params={"q": '"Unknown Researcher"', "rows": 50}
+                SEARCH_URL,
+                params={"q": '"Unknown" AND "Researcher"', "rows": 50},
             ),
             json={"expanded-result": None, "num-found": 0},
         )

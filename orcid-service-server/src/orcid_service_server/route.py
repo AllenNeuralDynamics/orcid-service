@@ -27,16 +27,20 @@ MAX_DOMAIN_CHECKS = 10
 CACHE_SECONDS = 86400
 
 
-def fold_name(name: str) -> str:
-    """Lowercase a name and drop accents, so Jerome matches Jérôme."""
+def name_tokens(name: str) -> List[str]:
+    """
+    Reduce a name to sorted, lowercased, unaccented tokens. Sorting makes
+    the comparison order-insensitive, so a record whose given and family
+    names were entered the wrong way round still matches.
+    """
     decomposed = unicodedata.normalize("NFKD", name)
     unaccented = "".join(
         char for char in decomposed if not unicodedata.combining(char)
     )
-    return " ".join(unaccented.lower().split())
+    return sorted(unaccented.lower().split())
 
 
-def name_matches(result: ExpandedResult, folded_name: str) -> bool:
+def name_matches(result: ExpandedResult, wanted: List[str]) -> bool:
     """
     Check that a result belongs to the person searched for. The default
     ORCID field indexes whole records, so a hit can come from a work title
@@ -46,7 +50,7 @@ def name_matches(result: ExpandedResult, folded_name: str) -> bool:
     family = result.family_names or ""
     known_names = [f"{given} {family}", result.credit_name or ""]
     known_names.extend(result.other_name)
-    return any(fold_name(known) == folded_name for known in known_names)
+    return any(name_tokens(known) == wanted for known in known_names)
 
 
 def is_allen_record(result: ExpandedResult) -> bool:
@@ -90,13 +94,13 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     Resolve a name to an ORCID iD, or None when the match is not
     definitive.
     """
-    folded_name = fold_name(name)
+    wanted = name_tokens(name)
     async with get_session() as session:
         handler = SessionHandler(session=session)
         results = [
             result
             for result in await handler.search_by_name(name)
-            if name_matches(result, folded_name)
+            if name_matches(result, wanted)
         ]
 
         # A name match alone would resolve an unregistered AIND person to

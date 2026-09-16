@@ -24,9 +24,13 @@ class SessionHandler:
         """
         Search the ORCID registry for a name.
 
-        A quoted phrase search on the default Solr field, unlike the
-        given-names and family-name fields, folds accents and needs no
-        guess about which tokens make up a family name such as "de Vries".
+        Every token is required, in any order, on the default Solr field.
+        That field folds accents, and requiring tokens rather than an
+        ordered phrase means we never guess which of them make up the
+        family name, and still match records where the given and family
+        names were entered the wrong way round. Each token is quoted so
+        that a hyphen is read as part of the name rather than as Solr's
+        NOT operator.
 
         Parameters
         ----------
@@ -38,9 +42,10 @@ class SessionHandler:
 
         """
         logging.debug(f"Searching ORCID for {name}")
+        query = " AND ".join(f'"{token}"' for token in name.split())
         response = await self.session.get(
             "/v3.0/expanded-search/",
-            params={"q": f'"{name}"', "rows": 50},
+            params={"q": query, "rows": 50},
         )
         response.raise_for_status()
         search = ExpandedSearch(**response.json())
