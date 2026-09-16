@@ -26,10 +26,17 @@ def name_tokens(name: str) -> List[str]:
     the comparison order-insensitive, so a record whose given and family
     names were entered the wrong way round still matches.
     """
+    # NFKD splits an accented character into its base letter plus a
+    # separate combining mark, so "é" becomes "e" + U+0301.
     decomposed = unicodedata.normalize("NFKD", name)
+    # Dropping every combining mark then leaves the bare letters behind,
+    # turning "Jérôme" into "Jerome". Letters that are not a base plus an
+    # accent, such as "ø" and "ł", have nothing to strip and survive as
+    # they are. ORCID does not fold those either, so this matches it.
     unaccented = "".join(
         char for char in decomposed if not unicodedata.combining(char)
     )
+    # Sorting is what makes the comparison order-insensitive.
     return sorted(unaccented.lower().split())
 
 
@@ -51,8 +58,15 @@ async def match_by_email_domain(
 ) -> List[str]:
     """
     Return the iDs whose record summary lists a verified Allen email
-    domain. That endpoint is undocumented, so a failed lookup counts as no
-    signal rather than an error.
+    domain. Only reached when someone has recorded no affiliation and no
+    public Allen email, since otherwise the first search resolves them.
+
+    This uses the summary endpoint rather than the standard public API.
+    ORCID does not document that endpoint; it is what their own website
+    calls to draw a record page, and we found it by looking at what that
+    page fetches. Nothing stops them changing or removing it, so
+    failures are caught and treated as no answer. If it goes away we
+    lose only the people who could not be resolved the normal way.
     """
     matches = []
     for result in results:
