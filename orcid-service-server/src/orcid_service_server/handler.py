@@ -12,6 +12,14 @@ from orcid_service_server.models import (
     RecordSummary,
 )
 
+# ORCID indexes affiliations and public emails, so it can filter to Allen
+# people server-side. The phrase "Allen Institute" also excludes unrelated
+# organizations such as the law firm Allen and Overy.
+ALLEN_DOMAIN = "alleninstitute.org"
+ALLEN_CLAUSE = (
+    '(affiliation-org-name:"Allen Institute"' f" OR email:*@{ALLEN_DOMAIN})"
+)
+
 
 class SessionHandler:
     """Handle session object to get data"""
@@ -20,7 +28,9 @@ class SessionHandler:
         """Class constructor"""
         self.session = session
 
-    async def search_by_name(self, name: str) -> List[ExpandedResult]:
+    async def search_by_name(
+        self, name: str, allen_only: bool = False
+    ) -> List[ExpandedResult]:
         """
         Search the ORCID registry for a name.
 
@@ -35,6 +45,11 @@ class SessionHandler:
         Parameters
         ----------
         name : str
+        allen_only : bool
+          Also require an Allen institution or a public Allen email.
+          ORCID applies this itself, so the result is exact even for a
+          name with hundreds of holders, where asking for the name alone
+          would return only the first page. Default is False.
 
         Returns
         -------
@@ -43,6 +58,8 @@ class SessionHandler:
         """
         logging.debug(f"Searching ORCID for {name}")
         query = " AND ".join(f'"{token}"' for token in name.split())
+        if allen_only:
+            query = f"{query} AND {ALLEN_CLAUSE}"
         response = await self.session.get(
             "/v3.0/expanded-search/",
             params={"q": query, "rows": 50},

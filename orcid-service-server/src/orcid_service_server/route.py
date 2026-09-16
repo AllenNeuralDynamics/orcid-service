@@ -7,23 +7,16 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Path, status
 from fastapi_cache.decorator import cache
 
-from orcid_service_server.handler import SessionHandler
+from orcid_service_server.handler import ALLEN_DOMAIN, SessionHandler
 from orcid_service_server.models import ExpandedResult, HealthCheck, OrcidId
 from orcid_service_server.session import get_session
 
 router = APIRouter()
 
-# "allen institute" rather than "allen", which also matches unrelated
-# organizations such as the law firm Allen and Overy.
-ALLEN_INSTITUTION = "allen institute"
-ALLEN_DOMAIN = "alleninstitute.org"
-# Verified email domains take one request per candidate, so they are only
-# worth spending on a short list of namesakes.
+# Verified email domains are the one Allen signal ORCID does not index,
+# so they take a request per candidate and are only worth spending on a
+# short list of namesakes.
 MAX_DOMAIN_CHECKS = 10
-# Successful lookups are cached. A 404 raises, so misses are never cached
-# and are re-checked on the next request, which is what lets someone who
-# has just added an affiliation to their ORCID record verify it at once.
-# Send "Cache-Control: no-cache" to force a refresh of a cached hit.
 CACHE_SECONDS = 86400
 
 
@@ -51,20 +44,6 @@ def name_matches(result: ExpandedResult, wanted: List[str]) -> bool:
     known_names = [f"{given} {family}", result.credit_name or ""]
     known_names.extend(result.other_name)
     return any(name_tokens(known) == wanted for known in known_names)
-
-
-def is_allen_record(result: ExpandedResult) -> bool:
-    """
-    Check a search result for an Allen institution name or a full Allen
-    email address. The address is only in the payload when the person made
-    it public, which is rare; verified email domains cover the rest.
-    """
-    return any(
-        ALLEN_INSTITUTION in institution.lower()
-        for institution in result.institution_name
-    ) or any(
-        email.lower().endswith(f"@{ALLEN_DOMAIN}") for email in result.email
-    )
 
 
 async def match_by_email_domain(
@@ -97,22 +76,28 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     wanted = name_tokens(name)
     async with get_session() as session:
         handler = SessionHandler(session=session)
+
+        # Ask ORCID for people with this name who it already knows are at
+        # Allen. Doing it in the query rather than by filtering afterwards
+        # stays exact for names with hundreds of holders, where a
+        # name-only search would only return the first page of results.
+        matches = [
+            result.orcid_id
+            for result in await handler.search_by_name(name, allen_only=True)
+            if name_matches(result, wanted)
+        ]
+        if len(matches) == 1:
+            return matches[0]
+
+        # Nobody, or too many. Plenty of people record no affiliation and
+        # keep their address private, and ORCID does not index the
+        # verified email domain that would identify them, so fall back to
+        # the name alone and read the domain off each candidate.
         results = [
             result
             for result in await handler.search_by_name(name)
             if name_matches(result, wanted)
         ]
-
-        # A name match alone would resolve an unregistered AIND person to
-        # a stranger who shares their name, so an Allen signal is required
-        # too. Institutions and public emails come back with the search.
-        matches = [
-            result.orcid_id for result in results if is_allen_record(result)
-        ]
-        if len(matches) == 1:
-            return matches[0]
-
-        # Nobody stood out, so check verified email domains as well.
         if 0 < len(results) <= MAX_DOMAIN_CHECKS:
             matches = await match_by_email_domain(handler, results)
             if len(matches) == 1:
@@ -159,18 +144,22 @@ async def get_orcid(
     match is not definitive.
 
     We require the full name to match the name on the record, ignoring
-    case and accents, plus one of the following must be true:
+    case, accents, and the order of the name parts, plus one of the
+    following must be true:
 
-    - The record lists an Allen institution or a public Allen email
-      address, found in the expanded-search endpoint results, or
-    - The record summary lists a verified Allen email domain, found in a
-      follow-up request to the summary endpoint.
+    - ORCID lists an Allen institution or a public Allen email address on
+      the record. We ask for this in the search itself rather than
+      filtering afterwards, so the answer stays exact even for a name
+      shared by hundreds of people.
+    - The record summary lists a verified Allen email domain. ORCID does
+      not index that, so finding it takes a second search on the name
+      alone followed by one request per candidate.
 
-    Calls to the summary endpoint require a request each, so they are
-    capped at MAX_DOMAIN_CHECKS, which defaults to 10. Users with common
-    names may exceed that limit. However, setting the affiliation to an
-    Allen institution or a public Allen email address will guarantee a
-    match without needing to check the summary endpoint, which is preferred.
+    Those per-candidate requests are capped at MAX_DOMAIN_CHECKS, which
+    defaults to 10, so someone with a common name and no affiliation may
+    never reach that check. Setting the affiliation to an Allen
+    institution or a public Allen email address will guarantee a match on
+    the first search, which is preferred.
     """
     # Quotes and backslashes would break the quoted Solr query.
     name_parts = name.replace('"', "").replace("\\", "").split()

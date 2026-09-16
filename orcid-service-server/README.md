@@ -10,6 +10,18 @@
 
 REST service that resolves researcher names to ORCID iDs.
 
+## How matching works
+
+`GET /orcid/{name}` returns an iD only when exactly one ORCID record both carries the name and is tied to Allen. The name must match in full, ignoring case, accents and the order of the name parts. Two stages:
+
+1. **Ask ORCID for the name plus an Allen signal.** The query requires every name token, in any order, and an `affiliation-org-name` of "Allen Institute" or a public `@alleninstitute.org` email. Filtering in the query rather than afterwards keeps the answer exact for names shared by hundreds of people, where asking for the name alone would return only the first page. It also excludes unrelated organizations: "Allen Institute" as a phrase does not match the law firm Allen and Overy.
+
+2. **Fall back to verified email domains.** Plenty of people record no affiliation and keep their address private, so ORCID cannot filter for them. If stage one was not decisive, search the name alone and read the verified email domain off each candidate's record summary. That takes one request per candidate and is capped at `MAX_DOMAIN_CHECKS` (10), so someone with a common name and no affiliation may not be reachable this way.
+
+Anything else is a 404 with a logged warning. A name match on its own is never enough: an AIND researcher who never registered with ORCID would otherwise resolve to a stranger who happens to share their name.
+
+Results from either search are checked against the name before anything else, because ORCID's default search field indexes whole records. A search for a well-cited researcher returns people who merely cite them.
+
 ## Configuration
 
 All settings are read from the environment with an `ORCID_` prefix, and all of them have defaults, so the service runs with no configuration.
