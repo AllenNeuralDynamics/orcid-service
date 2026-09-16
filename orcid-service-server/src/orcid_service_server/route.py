@@ -6,10 +6,11 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Path, status
 from fastapi_cache.decorator import cache
+from httpx import AsyncClient
 
+from orcid_service_server.configs import settings
 from orcid_service_server.handler import ALLEN_DOMAIN, SessionHandler
 from orcid_service_server.models import ExpandedResult, HealthCheck, OrcidId
-from orcid_service_server.session import get_session
 
 router = APIRouter()
 
@@ -88,7 +89,11 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     definitive.
     """
     wanted = name_tokens(name)
-    async with get_session() as session:
+    async with AsyncClient(
+        base_url=settings.api_host.unicode_string(),
+        headers={"Accept": "application/json"},
+        timeout=settings.request_timeout,
+    ) as session:
         handler = SessionHandler(session=session)
 
         # Ask ORCID for people with this name who it already knows are at

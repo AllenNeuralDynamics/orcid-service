@@ -26,6 +26,11 @@ class Settings(ParameterStoreAppBaseSettings):
             "domains are served here rather than from the public API."
         ),
     )
+    request_timeout: float = Field(
+        default=30.0,
+        title="Request Timeout",
+        description="Seconds to wait on a request to ORCID.",
+    )
     redis_url: Optional[RedisDsn] = Field(default=None)
 
 
