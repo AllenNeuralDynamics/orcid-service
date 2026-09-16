@@ -37,7 +37,6 @@ def name_tokens(name: str) -> List[str]:
     unaccented = "".join(
         char for char in decomposed if not unicodedata.combining(char)
     )
-    # Sorting is what makes the comparison order-insensitive.
     return sorted(unaccented.lower().split())
 
 
@@ -96,10 +95,9 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     ) as session:
         handler = SessionHandler(session=session)
 
-        # Ask ORCID for people with this name who it already knows are at
-        # Allen. Doing it in the query rather than by filtering afterwards
-        # stays exact for names with hundreds of holders, where a
-        # name-only search would only return the first page of results.
+        # Filtering in the query rather than afterwards stays exact for
+        # names with hundreds of holders, where a name-only search would
+        # only return the first page.
         matches = [
             result.orcid_id
             for result in await handler.search_by_name(name, allen_only=True)
@@ -108,10 +106,9 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
         if len(matches) == 1:
             return matches[0]
 
-        # Nobody, or too many. Plenty of people record no affiliation and
-        # keep their address private, and ORCID does not index the
-        # verified email domain that would identify them, so fall back to
-        # the name alone and read the domain off each candidate.
+        # Some people record no affiliation and keep their address
+        # private. ORCID does not index the verified email domain that
+        # would identify them, so it takes a second search.
         results = [
             result
             for result in await handler.search_by_name(name)

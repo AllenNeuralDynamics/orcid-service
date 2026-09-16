@@ -12,8 +12,7 @@ from orcid_service_server.models import (
     RecordSummary,
 )
 
-# ORCID indexes affiliations and public emails, so it can filter to Allen
-# people server-side. The phrase "Allen Institute" also excludes unrelated
+# "Allen Institute" as a phrase, so this does not also match unrelated
 # organizations such as the law firm Allen and Overy.
 ALLEN_DOMAIN = "alleninstitute.org"
 ALLEN_CLAUSE = (
