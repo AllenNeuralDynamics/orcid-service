@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.routing import APIRoute
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
@@ -57,12 +56,5 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
-
-# Clean up the method names generated in the client code. This iterates the
-# router rather than app.routes, which since FastAPI 0.141 holds a lazy
-# _IncludedRouter instead of the APIRoutes themselves.
-for route in router.routes:
-    if isinstance(route, APIRoute):
-        route.operation_id = route.name
 
 app.include_router(router)

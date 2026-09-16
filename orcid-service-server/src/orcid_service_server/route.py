@@ -132,6 +132,7 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     response_description="Return HTTP Status Code 200 (OK)",
     status_code=status.HTTP_200_OK,
     response_model=HealthCheck,
+    operation_id="get_health",
 )
 async def get_health() -> HealthCheck:
     """
@@ -143,7 +144,7 @@ async def get_health() -> HealthCheck:
     return HealthCheck()
 
 
-@router.get("/orcid/{name}", response_model=OrcidId)
+@router.get("/orcid/{name}", response_model=OrcidId, operation_id="get_orcid")
 @cache(expire=CACHE_SECONDS)
 async def get_orcid(
     name: str = Path(
