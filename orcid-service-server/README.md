@@ -10,6 +10,18 @@
 
 REST service that resolves researcher names to ORCID iDs.
 
+## How matching works
+
+`GET /orcid/{name}` returns an iD only when exactly one ORCID record both carries the name and is tied to Allen. The name must match in full, ignoring case, accents and the order of the name parts. Two stages:
+
+1. **Ask ORCID for the name plus an Allen signal.** The query requires every name token, in any order, and an `affiliation-org-name` of "Allen Institute" or a public `@alleninstitute.org` email. Filtering in the query rather than afterwards keeps the answer exact for names shared by hundreds of people, where asking for the name alone would return only the first page. It also excludes unrelated organizations: "Allen Institute" as a phrase does not match the law firm Allen and Overy.
+
+2. **Fall back to verified email domains.** Plenty of people record no affiliation and keep their address private, so ORCID cannot filter for them. If stage one was not decisive, search the name alone and read the verified email domain off each candidate's record summary. That takes one request per candidate and is capped at `MAX_DOMAIN_CHECKS` (10), so someone with a common name and no affiliation may not be reachable this way.
+
+Anything else is a 404 with a logged warning. A name match on its own is never enough: an AIND researcher who never registered with ORCID would otherwise resolve to a stranger who happens to share their name.
+
+Results from either search are checked against the name before anything else, because ORCID's default search field indexes whole records. A search for a well-cited researcher returns people who merely cite them.
+
 ## Configuration
 
 All settings are read from the environment with an `ORCID_` prefix, and all of them have defaults, so the service runs with no configuration.
@@ -18,10 +30,31 @@ All settings are read from the environment with an `ORCID_` prefix, and all of t
 | --- | --- | --- |
 | `ORCID_API_HOST` | `https://pub.orcid.org` | The ORCID public API |
 | `ORCID_SUMMARY_HOST` | `https://orcid.org` | Record summaries, which carry verified email domains |
-| `ORCID_ACCESS_TOKEN` | unset | Optional `/read-public` token. Raises the rate limit; anonymous access works without it |
 | `ORCID_REDIS_URL` | unset | Cache backend. Falls back to an in-process cache when unset |
 
-Lookups are cached for 24 hours, since ORCID iDs are permanent.
+## Caching
+
+Successful lookups are cached for 24 hours, keyed on the name, in Redis when `ORCID_REDIS_URL` is set and in-process otherwise.
+
+**Lookups that return 404 are not cached.** A miss raises, and exceptions are never cached, so a name that does not resolve is re-checked on every request. As a result, someone who has just added an affiliation to their ORCID record can verify it immediately rather than waiting for the cache to reset.
+
+To force a refresh of a cached *successful* lookup, send `Cache-Control: no-cache`:
+
+```bash
+curl -H "Cache-Control: no-cache" "http://localhost:8000/orcid/Jerome%20Lecoq"
+```
+
+So request volume splits in two:
+
+- **Names that resolve** result in at most one ORCID search per name per day, however many data assets name that person.
+- **Names that do not resolve** result in a lookup every single time, because nothing is cached. We do not know how many AIND people have no usable affiliation on their ORCID record, so this side is unmeasured.
+
+For upload-time use that is comfortable. ORCID allows 12 requests/second and 25,000 reads/day per IP for anonymous clients, and normal upload traffic will not approach it.
+
+**Bulk callers need to deduplicate.** A migration that regenerates metadata for 10,000 assets with three investigators each would make 30,000 lookups and exceed the cap, even though the same finite set of people is involved. Resolve each distinct name once per run and reuse the result.
+
+When the quota is exhausted ORCID returns 429, which surfaces here as a 500 with the status in the logs. 
+
 
 ## Development
 
@@ -40,7 +73,7 @@ The interactive docs at `/docs` are the quickest way to try a name by hand.
 | --- | --- |
 | `configs.py` | Settings |
 | `models.py` | Pydantic models for ORCID payloads and this service's responses |
-| `session.py` | Builds the HTTP client, attaching the bearer token when one is configured |
+| `session.py` | Builds the HTTP client |
 | `handler.py` | One method per outbound ORCID request |
 | `route.py` | Endpoints and the matching rule |
 | `main.py` | App, cache lifespan, CORS |

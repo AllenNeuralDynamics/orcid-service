@@ -4,7 +4,7 @@
 
 Resolves researcher names to [ORCID](https://orcid.org) iDs using the public ORCID registry.
 
-Names come in, an ORCID iD comes back when the match is unambiguous, and a 404 when it is not. Intended to be called by other AIND services (primarily [aind-metadata-service](https://github.com/AllenNeuralDynamics/aind-metadata-service)) so that `registry_identifier` can be populated on `Person` objects in metadata, but it is usable on its own.
+Names come in, an ORCID iD comes back when the match is unambiguous, and a 404 when it is not. An iD is returned only when exactly one record both carries the name and is tied to Allen, either by an affiliation or public email that ORCID indexes, or by a verified `alleninstitute.org` email domain that it does not. See the [server README](orcid-service-server/README.md#how-matching-works) for the details. Intended to be called by other AIND services (primarily [aind-metadata-service](https://github.com/AllenNeuralDynamics/aind-metadata-service)) so that `registry_identifier` can be populated on `Person` objects in metadata, but it is usable on its own.
 
 No credentials are required. ORCID's public API serves anonymous requests, at a lower rate limit than a registered token.
 
@@ -29,6 +29,8 @@ uv run uvicorn orcid_service_server.main:app --port 8000
 ```
 
 Then open http://localhost:8000/docs for the interactive API docs, or http://localhost:8000/healthcheck.
+
+Successful lookups are cached for 24 hours; lookups that return 404 are not cached, so a name that does not resolve is re-checked every time. Bulk callers should resolve each distinct name once rather than once per data asset. See the [server README](orcid-service-server/README.md) for details.
 
 Every setting has a default pointing at the public ORCID hosts, so no configuration is needed to run or test.
 

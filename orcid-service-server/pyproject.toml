@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "orcid-service-server"
-description = "Package to serve data from backend."
+description = "Package to serve ORCID iD lookups."
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
@@ -17,10 +17,12 @@ readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
-    'requests-toolbelt',  # Used for example. Remove if not needed.
+    'aind-settings-utils>=0.0.3',
+    'httpx',
     'pydantic>=2.0',
     'pydantic-settings>=2.0',
     'fastapi[standard]>=0.114.0',
+    'fastapi-cache2[redis]>=0.2.2',
 ]
 
 [project.optional-dependencies]
@@ -36,6 +38,7 @@ dev = [
     'pytest-env',
     'pytest-mock',
     'pytest_asyncio',
+    'pytest-httpx',
 ]
 
 [tool.setuptools.packages.find]
@@ -90,5 +93,6 @@ fail-under = 100
 asyncio_mode="auto"
 asyncio_default_fixture_loop_scope="function"
 env = [
-    "MYENV_HOST=example"
+    "ORCID_API_HOST=http://example.com/pub",
+    "ORCID_SUMMARY_HOST=http://example.com",
 ]
