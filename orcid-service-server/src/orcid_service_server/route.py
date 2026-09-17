@@ -14,9 +14,6 @@ from orcid_service_server.models import ExpandedResult, HealthCheck, OrcidId
 
 router = APIRouter()
 
-# Verified email domains are the one Allen signal ORCID does not index,
-# so they take a request per candidate and are only worth spending on a
-# short list of namesakes.
 MAX_DOMAIN_CHECKS = 10
 CACHE_SECONDS = 86400
 
@@ -27,13 +24,7 @@ def name_tokens(name: str) -> List[str]:
     the comparison order-insensitive, so a record whose given and family
     names were entered the wrong way round still matches.
     """
-    # NFKD splits an accented character into its base letter plus a
-    # separate combining mark, so "é" becomes "e" + U+0301.
     decomposed = unicodedata.normalize("NFKD", name)
-    # Dropping every combining mark then leaves the bare letters behind,
-    # turning "Jérôme" into "Jerome". Letters that are not a base plus an
-    # accent, such as "ø" and "ł", have nothing to strip and survive as
-    # they are. ORCID does not fold those either, so this matches it.
     unaccented = "".join(
         char for char in decomposed if not unicodedata.combining(char)
     )
@@ -95,9 +86,6 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
     ) as session:
         handler = SessionHandler(session=session)
 
-        # Filtering in the query rather than afterwards stays exact for
-        # names with hundreds of holders, where a name-only search would
-        # only return the first page.
         matches = [
             result.orcid_id
             for result in await handler.search_by_name(name, allen_only=True)
@@ -106,9 +94,6 @@ async def resolve_orcid_id(name: str) -> Optional[str]:
         if len(matches) == 1:
             return matches[0]
 
-        # Some people record no affiliation and keep their address
-        # private. ORCID does not index the verified email domain that
-        # would identify them, so it takes a second search.
         results = [
             result
             for result in await handler.search_by_name(name)
@@ -151,7 +136,6 @@ async def get_health() -> HealthCheck:
 async def get_orcid(
     name: str = Path(
         ...,
-        examples=["Jerome Lecoq", "Saskia de Vries"],
         description="A researcher's given and family name.",
     ),
 ):

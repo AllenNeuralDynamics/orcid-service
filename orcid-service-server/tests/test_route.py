@@ -46,8 +46,7 @@ def add_summary(httpx_mock: HTTPXMock, orcid_id: str, *domains: str) -> None:
 
 
 def person(orcid_id: str, given: str, family: str, **extra: object) -> dict:
-    """Build a search result. Names and iDs are placeholders; the
-    0000-0000-* iD range is unassigned by ORCID."""
+    """Build a search result. The 0000-0000-* iD range is unassigned."""
     return {
         "orcid-id": orcid_id,
         "given-names": given,
@@ -82,7 +81,6 @@ class TestOrcidRoute:
 
         assert 200 == response.status_code
         assert {"orcid": "0000-0000-0000-0011"} == response.json()
-        # One request only: ORCID did the Allen filtering itself.
         assert 1 == len(httpx_mock.get_requests())
 
     def test_allen_filter_is_applied_in_the_query(
@@ -99,8 +97,6 @@ class TestOrcidRoute:
         client.get("/orcid/Researcher One")
 
         sent = httpx_mock.get_requests()[0].url.params["q"]
-        # "Allen Institute" as a phrase, so the law firm Allen and Overy
-        # is excluded by ORCID rather than filtered out afterwards.
         assert '"Researcher" AND "One" AND ' in sent
         assert 'affiliation-org-name:"Allen Institute"' in sent
         assert "email:*@alleninstitute.org" in sent
@@ -109,8 +105,6 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a record matched on something other than its own name"""
-        # The default ORCID field indexes whole records, so a search can
-        # return someone whose work merely cites the person searched for.
         add_search(
             httpx_mock,
             "Researcher One",
@@ -128,8 +122,6 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests an unaccented name matches an accented record"""
-        # Models the real Jerome/Jérôme Lecoq case: the default ORCID
-        # field folds accents, the fielded name indexes do not.
         add_search(
             httpx_mock,
             "Accented Researcher",
@@ -146,9 +138,6 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a record whose given and family names are swapped"""
-        # Models the real Karel Svoboda record, filed as
-        # given-names="svoboda", family-names="karel". Requiring tokens in
-        # any order, and comparing sorted tokens, is what catches it.
         add_search(
             httpx_mock,
             "Researcher Four",
@@ -165,10 +154,6 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a record with no affiliation resolved by email domain"""
-        # Models the real Saskia de Vries case: a multi-token surname, no
-        # affiliation and a private address, so ORCID cannot filter for
-        # her, plus two same-named stub records. Only the verified email
-        # domain separates them.
         namesakes = [
             person(orcid_id, "Multi", "Token Surname")
             for orcid_id in [
@@ -213,8 +198,6 @@ class TestOrcidRoute:
         self, client: TestClient, httpx_mock: HTTPXMock
     ):
         """Tests a lone name match with nothing tying it to Allen"""
-        # An entirely empty ORCID record. Unique on name, but nothing says
-        # it belongs to the AIND person being looked up.
         add_search(httpx_mock, "Researcher Five", allen_only=True)
         add_search(
             httpx_mock,
@@ -247,7 +230,6 @@ class TestOrcidRoute:
         response = client.get("/orcid/Common Name")
 
         assert 404 == response.status_code
-        # The two searches only, no per-candidate summary lookups.
         assert 2 == len(httpx_mock.get_requests())
 
     def test_get_orcid_not_found(
