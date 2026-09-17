@@ -4,23 +4,42 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**get_content_example_arg_get**](DefaultApi.md#get_content_example_arg_get) | **GET** /{example_arg} | Get Content
+[**get_orcid**](DefaultApi.md#get_orcid) | **GET** /orcid/{name} | Get Orcid
 
 
-# **get_content_example_arg_get**
-> Content get_content_example_arg_get(example_arg)
+# **get_orcid**
+> OrcidId get_orcid(name)
 
-Get Content
+Get Orcid
 
-## Example content
-Return either the raw content or the number of characters.
+## ORCID
+Return an Allen Institute researcher's ORCID iD, or 404 when the
+match is not definitive.
+
+We require the full name to match the name on the record, ignoring
+case, accents, and the order of the name parts, plus one of the
+following must be true:
+
+- ORCID lists an Allen institution or a public Allen email address on
+  the record. We ask for this in the search itself rather than
+  filtering afterwards, so the answer stays exact even for a name
+  shared by hundreds of people.
+- The record summary lists a verified Allen email domain. ORCID does
+  not index that, so finding it takes a second search on the name
+  alone followed by one request per candidate.
+
+Those per-candidate requests are capped at MAX_DOMAIN_CHECKS, which
+defaults to 10, so someone with a common name and no affiliation may
+never reach that check. Setting the affiliation to an Allen
+institution or a public Allen email address will guarantee a match on
+the first search, which is preferred.
 
 ### Example
 
 
 ```python
 import orcid_service_client
-from orcid_service_client.models.content import Content
+from orcid_service_client.models.orcid_id import OrcidId
 from orcid_service_client.rest import ApiException
 from pprint import pprint
 
@@ -35,15 +54,15 @@ configuration = orcid_service_client.Configuration(
 with orcid_service_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = orcid_service_client.DefaultApi(api_client)
-    example_arg = 'example_arg_example' # str | 
+    name = 'name_example' # str | A researcher's given and family name.
 
     try:
-        # Get Content
-        api_response = api_instance.get_content_example_arg_get(example_arg)
-        print("The response of DefaultApi->get_content_example_arg_get:\n")
+        # Get Orcid
+        api_response = api_instance.get_orcid(name)
+        print("The response of DefaultApi->get_orcid:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->get_content_example_arg_get: %s\n" % e)
+        print("Exception when calling DefaultApi->get_orcid: %s\n" % e)
 ```
 
 
@@ -53,11 +72,11 @@ with orcid_service_client.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **example_arg** | **str**|  | 
+ **name** | **str**| A researcher&#39;s given and family name. | 
 
 ### Return type
 
-[**Content**](Content.md)
+[**OrcidId**](OrcidId.md)
 
 ### Authorization
 

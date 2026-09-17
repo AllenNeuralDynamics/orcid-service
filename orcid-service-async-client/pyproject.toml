@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "orcid_service_async_client"
-version = "0.0.1"
-description = "aind-service-template"
+version = "0.1.0"
+description = "orcid-service"
 authors = ["OpenAPI Generator Community <team@openapitools.org>"]
 license = "NoLicense"
 readme = "README.md"
 repository = "https://github.com/GIT_USER_ID/GIT_REPO_ID"
-keywords = ["OpenAPI", "OpenAPI-Generator", "aind-service-template"]
+keywords = ["OpenAPI", "OpenAPI-Generator", "orcid-service"]
 include = ["orcid_service_async_client/py.typed"]
 
 [tool.poetry.dependencies]

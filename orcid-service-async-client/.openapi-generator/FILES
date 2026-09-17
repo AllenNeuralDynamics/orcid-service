@@ -4,11 +4,11 @@
 .openapi-generator-ignore
 .travis.yml
 README.md
-docs/Content.md
 docs/DefaultApi.md
 docs/HTTPValidationError.md
 docs/HealthCheck.md
 docs/HealthcheckApi.md
+docs/OrcidId.md
 docs/ValidationError.md
 docs/ValidationErrorLocInner.md
 git_push.sh
@@ -21,9 +21,9 @@ orcid_service_async_client/api_response.py
 orcid_service_async_client/configuration.py
 orcid_service_async_client/exceptions.py
 orcid_service_async_client/models/__init__.py
-orcid_service_async_client/models/content.py
 orcid_service_async_client/models/health_check.py
 orcid_service_async_client/models/http_validation_error.py
+orcid_service_async_client/models/orcid_id.py
 orcid_service_async_client/models/validation_error.py
 orcid_service_async_client/models/validation_error_loc_inner.py
 orcid_service_async_client/py.typed
@@ -34,11 +34,11 @@ setup.cfg
 setup.py
 test-requirements.txt
 test/__init__.py
-test/test_content.py
 test/test_default_api.py
 test/test_health_check.py
 test/test_healthcheck_api.py
 test/test_http_validation_error.py
+test/test_orcid_id.py
 test/test_validation_error.py
 test/test_validation_error_loc_inner.py
 tox.ini

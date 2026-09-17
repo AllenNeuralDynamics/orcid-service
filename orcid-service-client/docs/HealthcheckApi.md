@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**get_health_healthcheck_get**](HealthcheckApi.md#get_health_healthcheck_get) | **GET** /healthcheck | Perform a Health Check
+[**get_health**](HealthcheckApi.md#get_health) | **GET** /healthcheck | Perform a Health Check
 
 
-# **get_health_healthcheck_get**
-> HealthCheck get_health_healthcheck_get()
+# **get_health**
+> HealthCheck get_health()
 
 Perform a Health Check
 
@@ -40,11 +40,11 @@ with orcid_service_client.ApiClient(configuration) as api_client:
 
     try:
         # Perform a Health Check
-        api_response = api_instance.get_health_healthcheck_get()
-        print("The response of HealthcheckApi->get_health_healthcheck_get:\n")
+        api_response = api_instance.get_health()
+        print("The response of HealthcheckApi->get_health:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling HealthcheckApi->get_health_healthcheck_get: %s\n" % e)
+        print("Exception when calling HealthcheckApi->get_health: %s\n" % e)
 ```
 
 
