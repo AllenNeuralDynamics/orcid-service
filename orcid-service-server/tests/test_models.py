@@ -49,7 +49,9 @@ class TestRecordSummary(unittest.TestCase):
                 ]
             }
         )
-        self.assertEqual("alleninstitute.org", summary.email_domains[0].value)
+        self.assertEqual(
+            "alleninstitute.org", summary.email_domains[0]["value"]
+        )
 
     def test_handles_missing_email_domains(self):
         """Tests a record with no verified domains"""

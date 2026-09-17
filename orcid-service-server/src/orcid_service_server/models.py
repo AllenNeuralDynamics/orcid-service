@@ -36,16 +36,10 @@ class ExpandedSearch(BaseModel):
     num_found: int = Field(default=0, alias="num-found")
 
 
-class EmailDomain(BaseModel):
-    """A verified email domain on an ORCID record summary"""
-
-    value: Optional[str] = Field(default=None)
-
-
 class RecordSummary(BaseModel):
     """The part of an ORCID record summary this service reads"""
 
-    email_domains: List[EmailDomain] = Field(default=[], alias="emailDomains")
+    email_domains: List[dict] = Field(default=[], alias="emailDomains")
 
 
 class OrcidId(BaseModel):

@@ -92,7 +92,7 @@ class SessionHandler:
         response.raise_for_status()
         summary = RecordSummary(**response.json())
         return [
-            domain.value.lower()
+            domain["value"].lower()
             for domain in summary.email_domains
-            if domain.value
+            if domain.get("value")
         ]
